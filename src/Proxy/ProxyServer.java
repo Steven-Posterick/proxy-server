@@ -2,17 +2,23 @@ package Proxy;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
+import java.util.Locale.Category;
 import java.util.concurrent.ConcurrentHashMap;
+
+import javax.sound.sampled.Line;
+import javax.sound.sampled.Port;
 
 
 
@@ -46,7 +52,21 @@ public class ProxyServer {
          * remember to catch Exceptions!
          *
          */
+        while(true)
+        {
+            try
+            {
+                proxySocket = new ServerSocket(proxyPort);
+                Socket socket = proxySocket.accept();
 
+                Thread clientThread = new RequestHandler(socket, this);
+                clientThread.start();
+            }
+            catch(IOException ex)
+            {
+                ex.printStackTrace();
+            }
+        }
 
     }
 
@@ -68,6 +88,16 @@ public class ProxyServer {
          * e.g. String timeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date());
          *
          */
+        String file = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date());
+        try(FileOutputStream fos = new FileOutputStream(file))
+        {
+            fos.write(info.getBytes());
+        }
+        catch(IOException ex)
+        {
+            ex.printStackTrace();
+        }
+
     }
 
 }
