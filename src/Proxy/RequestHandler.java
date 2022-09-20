@@ -1,10 +1,11 @@
 package Proxy;
 
 import java.io.*;
-import java.net.*;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.security.MessageDigest;
 import java.security.SecureRandom;
 
 
@@ -20,6 +21,8 @@ public class RequestHandler extends Thread {
 
     byte[] request = new byte[1024];
 
+    private static final String PROXY_HOST = "localhost";
+
 
     private ProxyServer server;
 
@@ -33,7 +36,7 @@ public class RequestHandler extends Thread {
         this.server = proxyServer;
 
         try {
-            clientSocket.setSoTimeout(2000);
+            clientSocket.setSoTimeout(5000);
             inFromClient = clientSocket.getInputStream();
             outToClient = clientSocket.getOutputStream();
 
@@ -45,7 +48,6 @@ public class RequestHandler extends Thread {
 
 
     @Override
-
     public void run() {
 
         /**
@@ -57,23 +59,38 @@ public class RequestHandler extends Thread {
          * (4) Otherwise, call method proxyServertoClient to process the GET request
          *
          */
+        DataInputStream dis = new DataInputStream(inFromClient);
+        while (true){
+            try {
+                while (dis.read(request) > 0){
+                    String s = new String(request);
+                    System.out.println(s);
+                    if (!s.startsWith("GET")) continue;
+                    String[] split = s.split(System.lineSeparator());
+                    if (split.length == 0) continue;
+                    String header = split[0];
+                    String[] splitHeader = header.split(" ");
+                    if (splitHeader.length == 0) continue;
+                    String url = splitHeader[1];
 
+                    System.out.println(s);
+                    if (server.cache.containsKey(url)){
+                        sendCachedInfoToClient(server.getCache(url));
+                    } else {
+                        proxyServertoClient(url, request);
+                    }
+                }
+                Thread.sleep(1);
+
+            } catch (IOException | InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+
+        }
     }
 
 
-    private void proxyServertoClient(byte[] clientRequest) {
-
-        FileOutputStream fileWriter = null;
-        Socket toWebServerSocket = null;
-        InputStream inFromServer;
-        OutputStream outToServer;
-
-        // Create Buffered output stream to write to cached copy of file
-        String fileName = "cached/" + generateRandomFileName() + ".dat";
-
-        // to handle binary content, byte is used
-        byte[] serverReply = new byte[4096];
-
+    private void proxyServertoClient(String url, byte[] clientRequest) throws IOException {
 
         /**
          * To do
@@ -83,7 +100,32 @@ public class RequestHandler extends Thread {
          * (4) Write the web server's response to a cache file, put the request URL and cache file name to the cache Map
          * (5) close file, and sockets.
          */
+        // Create Buffered output stream to write to cached copy of file
+        String fileName = "cached" + File.separator + generateRandomFileName() + ".dat";
+        InetAddress address = InetAddress.getByName(new URL(url).getHost());
 
+        // Note: Creating socket/filestream inside of try catch automatically closes the resources at the end (called a try-with-resources).
+        try (Socket toWebServerSocket = new Socket(address, 80)){
+            InputStream inFromServer = toWebServerSocket.getInputStream();
+            OutputStream outToServer = toWebServerSocket.getOutputStream();
+
+            outToServer.write(clientRequest);
+            outToServer.flush();
+
+            try (FileOutputStream fileWriter = new FileOutputStream(fileName)){
+                byte[] serverReply = new byte[4096];
+
+
+                while (inFromServer.read(serverReply) > 0){
+                    fileWriter.write(serverReply);
+                    outToClient.write(serverReply);
+                    fileWriter.flush();
+                    outToClient.flush();
+                }
+            }
+        }
+
+        this.server.putCache(url, fileName);
     }
 
 
