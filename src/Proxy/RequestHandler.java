@@ -7,6 +7,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.SecureRandom;
+import java.util.regex.Matcher;
 
 
 // RequestHandler is thread that process requests of one client connection
@@ -60,37 +61,54 @@ public class RequestHandler extends Thread {
          *
          */
         DataInputStream dis = new DataInputStream(inFromClient);
-        while (true){
-            try {
-                while (dis.read(request) > 0){
-                    String s = new String(request);
-                    server.writeLog(s);
-                    System.out.println(s);
-                    if (!s.startsWith("GET")) continue;
-                    String[] split = s.split(System.lineSeparator());
-                    if (split.length == 0) continue;
-                    String header = split[0];
-                    String[] splitHeader = header.split(" ");
-                    if (splitHeader.length == 0) continue;
-                    String url = splitHeader[1];
+        try {
+            while (true) {
+                if (dis.read(request) <= 0) continue;
 
-                    System.out.println(s);
-                    if (server.cache.containsKey(url)){
-                        sendCachedInfoToClient(server.getCache(url));
-                    } else {
-                        proxyServertoClient(url, request);
-                    }
+                String s = new String(request);
+                if (!s.startsWith("GET")) continue;
+                String[] split = s.split(System.lineSeparator());
+                if (split.length == 0) continue;
+                String header = split[0];
+                String[] splitHeader = header.split(" ");
+                if (splitHeader.length == 0) continue;
+                String url = splitHeader[1];
+
+                InetAddress address = InetAddress.getByName(new URL(url).getHost());
+
+                server.writeLog(address.getHostAddress() + " " + url);
+                System.out.println(s);
+
+                System.out.println(s);
+                if (server.cache.containsKey(url)) {
+                    sendCachedInfoToClient(server.getCache(url));
+                } else {
+                    proxyServertoClient(url, address, request);
                 }
-                Thread.sleep(1);
 
-            } catch (IOException | InterruptedException e) {
-                throw new RuntimeException(e);
+                Thread.sleep(1);
+            }
+        } catch (IOException | InterruptedException e){
+            // ignore
+        } finally {
+            close(inFromClient);
+            close(outToClient);
+            close(clientSocket);
+        }
+    }
+
+    private void close(Closeable closeable){
+        if (closeable != null) {
+            try {
+                closeable.close();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
     }
 
 
-    private void proxyServertoClient(String url, byte[] clientRequest) throws IOException {
+    private void proxyServertoClient(String url, InetAddress address, byte[] clientRequest) throws IOException {
 
         /**
          * To do
@@ -102,7 +120,6 @@ public class RequestHandler extends Thread {
          */
         // Create Buffered output stream to write to cached copy of file
         String fileName = "cached" + File.separator + generateRandomFileName() + ".dat";
-        InetAddress address = InetAddress.getByName(new URL(url).getHost());
 
         // Note: Creating socket/filestream inside of try catch automatically closes the resources at the end (called a try-with-resources).
         try (Socket toWebServerSocket = new Socket(address, 80)){
