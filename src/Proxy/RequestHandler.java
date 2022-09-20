@@ -64,6 +64,7 @@ public class RequestHandler extends Thread {
             try {
                 while (dis.read(request) > 0){
                     String s = new String(request);
+                    server.writeLog(s);
                     System.out.println(s);
                     if (!s.startsWith("GET")) continue;
                     String[] split = s.split(System.lineSeparator());
