@@ -31,11 +31,11 @@ public class ProxyServer {
 
     String logFileName = "log.txt";
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         new ProxyServer().startServer(Integer.parseInt(args[0]));
     }
 
-    void startServer(int proxyPort) {
+    void startServer(int proxyPort) throws IOException {
 
         cache = new ConcurrentHashMap<>();
 
@@ -52,11 +52,11 @@ public class ProxyServer {
          * remember to catch Exceptions!
          *
          */
+        proxySocket = new ServerSocket(proxyPort);
         while(true)
         {
             try
             {
-                proxySocket = new ServerSocket(proxyPort);
                 Socket socket = proxySocket.accept();
 
                 Thread clientThread = new RequestHandler(socket, this);
