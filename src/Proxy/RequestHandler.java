@@ -86,7 +86,6 @@ public class RequestHandler extends Thread {
             } catch (IOException | InterruptedException e) {
                 throw new RuntimeException(e);
             }
-
         }
     }
 

@@ -88,10 +88,9 @@ public class ProxyServer {
          * e.g. String timeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date());
          *
          */
-        String file = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date());
-        try(FileOutputStream fos = new FileOutputStream(file))
+        try(FileOutputStream fos = new FileOutputStream(logFileName))
         {
-            fos.write(info.getBytes());
+            fos.write((info + new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date())).getBytes());
         }
         catch(IOException ex)
         {
