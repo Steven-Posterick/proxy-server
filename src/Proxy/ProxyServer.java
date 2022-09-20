@@ -90,7 +90,7 @@ public class ProxyServer {
          */
         try(FileOutputStream fos = new FileOutputStream(logFileName))
         {
-            fos.write((info + new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date())).getBytes());
+            fos.write((info + System.lineSeparator() + new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date())).getBytes());
         }
         catch(IOException ex)
         {
