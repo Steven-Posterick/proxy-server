@@ -74,16 +74,14 @@ public class RequestHandler extends Thread {
                 if (splitHeader.length == 0) continue;
                 String url = splitHeader[1];
 
-                InetAddress address = InetAddress.getByName(new URL(url).getHost());
-
-                server.writeLog(address.getHostAddress() + " " + url);
+                server.writeLog(clientSocket.getRemoteSocketAddress() + " " + url);
                 System.out.println(s);
 
                 System.out.println(s);
                 if (server.cache.containsKey(url)) {
                     sendCachedInfoToClient(server.getCache(url));
                 } else {
-                    proxyServertoClient(url, address, request);
+                    proxyServertoClient(url, request);
                 }
 
                 Thread.sleep(1);
@@ -108,7 +106,7 @@ public class RequestHandler extends Thread {
     }
 
 
-    private void proxyServertoClient(String url, InetAddress address, byte[] clientRequest) throws IOException {
+    private void proxyServertoClient(String url, byte[] clientRequest) throws IOException {
 
         /**
          * To do
@@ -118,6 +116,7 @@ public class RequestHandler extends Thread {
          * (4) Write the web server's response to a cache file, put the request URL and cache file name to the cache Map
          * (5) close file, and sockets.
          */
+        InetAddress address = InetAddress.getByName(new URL(url).getHost());
         // Create Buffered output stream to write to cached copy of file
         String fileName = "cached" + File.separator + generateRandomFileName() + ".dat";
 
